@@ -27,7 +27,6 @@
         .xp-bar-bg { background-color: #374151; } /* gray-700 */
         .xp-bar-fill { background-color: #FBBF24; transition: width 0.5s ease-in-out; } /* amber-400 */
 
-        /* Estilos para Flashcard */
         .flashcard-container { perspective: 1000px; }
         .flashcard { width: 100%; height: 200px; position: relative; transition: transform 0.6s; transform-style: preserve-3d; }
         .flashcard.is-flipped { transform: rotateY(180deg); }
@@ -44,13 +43,37 @@
             <h1 class="text-3xl md:text-4xl font-bold text-center sm:text-left bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-teal-300">
                 English Level Up ✨
             </h1>
-            <div id="userInfo" class="w-full sm:w-1/3 text-center sm:text-right">Cargando...</div>
+            <div id="userInfoContainer" class="w-full sm:w-1/3 text-center sm:text-right hidden">
+                 <div id="userInfo"></div>
+                 <button id="logout-btn" class="mt-2 text-sm text-red-400 hover:underline">Cerrar Sesión</button>
+            </div>
         </header>
 
-        <main id="content">
-            <div class="text-center py-16">
-                <div class="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-violet-500 mx-auto"></div>
-                <p class="mt-4 text-gray-400">Inicializando plataforma...</p>
+        <main id="main-content">
+            <!-- Contenedor para la autenticación -->
+            <div id="auth-container">
+                 <div class="max-w-md mx-auto bg-gray-800 p-8 rounded-lg fade-in">
+                    <h2 class="text-2xl font-bold text-center mb-6">Iniciar Sesión o Registrarse</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-300">Correo Electrónico</label>
+                            <input type="email" id="email" value="colonialsix12@gmail.com" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-300">Contraseña</label>
+                            <input type="password" id="password" value="A1002727802a" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div id="auth-error" class="text-red-400 text-sm h-4"></div>
+                        <div class="flex items-center justify-between gap-4 pt-4">
+                            <button id="login-btn" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-800">Iniciar Sesión</button>
+                            <button id="register-btn" class="w-full py-2 px-4 border border-gray-500 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 focus:ring-offset-gray-800">Registrarse</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+             <!-- Contenedor para el contenido principal del curso (inicialmente oculto) -->
+            <div id="course-container" class="hidden">
+                 <!-- El contenido del curso (niveles, lecciones, etc.) se renderizará aquí -->
             </div>
         </main>
 
@@ -60,699 +83,35 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        const contentDiv = document.getElementById('content');
+        const courseContainer = document.getElementById('course-container');
+        const authContainer = document.getElementById('auth-container');
+        const userInfoContainer = document.getElementById('userInfoContainer');
         const userInfoDiv = document.getElementById('userInfo');
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-english-app-intensive';
         
-        if (!firebaseConfig || !firebaseConfig.apiKey) {
-            console.error("Error: Configuración de Firebase inválida.");
-            contentDiv.innerHTML = `<div class="bg-red-900/50 border border-red-500 text-red-300 p-6 rounded-lg text-center fade-in"><h2 class="text-xl font-bold mb-2">Error de Configuración</h2><p>La aplicación no pudo conectar con la base de datos.</p></div>`;
-            userInfoDiv.textContent = "Error de conexión";
+        const firebaseConfig = {
+            apiKey: "AIzaSyDINZDspxrzOY_D5XtHo5g2MY4yQQc0WeI",
+            authDomain: "mi-curso-de-ingles.firebaseapp.com",
+            projectId: "mi-curso-de-ingles",
+            storageBucket: "mi-curso-de-ingles.firebasestorage.app",
+            messagingSenderId: "176562278163",
+            appId: "1:176562278163:web:1937fb4ebb26967e75d4e6",
+            measurementId: "G-1BY8S5J8J2"
+        };
+        const appId = 'english-level-up-app';
+
+        if (!firebaseConfig || !firebaseConfig.apiKey.startsWith("AIza")) {
+            console.error("Error: La configuración de Firebase no ha sido establecida.");
+            authContainer.innerHTML = `<div class="bg-red-900/50 border border-red-500 text-red-300 p-6 rounded-lg text-center fade-in"><h2 class="text-xl font-bold mb-2">Error de Configuración</h2><p>La aplicación no pudo conectar con la base de datos.</p><p class="mt-2 text-sm text-red-400">Por favor, edita el código HTML y añade tus credenciales de Firebase en el objeto 'firebaseConfig' para que la aplicación funcione.</p></div>`;
+            authContainer.style.display = 'block';
         } else {
             initializeAppAndRun();
         }
 
-        const courseData = {
-            "A1": {
-                name: "Principiante",
-                lessons: [
-                    {
-                        title: "Pronombres Personales",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Pronombres Personales (Personal Pronouns)</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Los pronombres personales reemplazan a los nombres para evitar la repetición. Son la base para conjugar verbos. Los principales son: <strong>I</strong> (Yo), <strong>You</strong> (Tú/Ustedes), <strong>He</strong> (Él), <strong>She</strong> (Ella), <strong>It</strong> (Eso), <strong>We</strong> (Nosotros/as), <strong>They</strong> (Ellos/as).</p></div>',
-                        examples: [{ en: "I am a student.", es: "Yo soy un estudiante." }, { en: "She is my wife.", es: "Ella es mi esposa." }, { en: "They are cooks.", es: "Ellos son cocineros." }],
-                        vocabulary: [{ word: "I", meaning: "Yo" }, { word: "You", meaning: "Tú / Ustedes" }, { word: "He", meaning: "Él" }, { word: "She", meaning: "Ella" }, { word: "It", meaning: "Eso (cosa)" }, { word: "We", meaning: "Nosotros/as" }, { word: "They", meaning: "Ellos/as" }],
-                        practice: [
-                            { type: "multipleChoice", question: "Elige el pronombre para 'Mi mamá':", options: ["He", "She", "It"], answer: 1 }, 
-                            { type: "fillInTheBlank", question: "Completa: '___ are friends.' (Nosotros)", answer: "We" },
-                            { type: "translate", question: "Traduce: 'Él está en Perú.'", answer: "He is in Peru" }
-                        ]
-                    },
-                    {
-                        title: "Verbo 'to be' y Adjetivos",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">El Verbo \'to be\' (Ser/Estar)</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>El verbo <strong>\'to be\'</strong> es fundamental. Sus formas en presente simple son <strong>am, is, are</strong>. Se usa para describir personas, objetos o lugares.</p></div>',
-                        examples: [{ en: "She is happy.", es: "Ella está feliz." }, { en: "The house is big.", es: "La casa es grande." }],
-                        vocabulary: [{ word: "Happy", meaning: "Feliz" }, { word: "Sad", meaning: "Triste" }, { word: "Big", meaning: "Grande" }],
-                        practice: [{ type: "multipleChoice", question: "Completa: 'They ___ doctors.'", options: ["am", "is", "are"], answer: 2 }, { type: "fillInTheBlank", question: "Escribe: 'I ___ tired.'", answer: "am" }]
-                    },
-                    {
-                        title: "La Familia",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Miembros de la Familia (Family Members)</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Aprender el vocabulario de la familia es esencial para hablar de las personas más cercanas a nosotros.</p></div>',
-                        examples: [
-                            { en: "He is my older brother.", es: "Él es mi hermano mayor." }, 
-                            { en: "My family is at the beach right now.", es: "Mi familia está en la playa ahora mismo." },
-                            { en: "This is Ana, my younger sister.", es: "Ella es Ana, mi hermana menor." }
-                        ],
-                        vocabulary: [
-                            { word: "Family", meaning: "Familia" }, 
-                            { word: "Mother", meaning: "Madre" }, 
-                            { word: "Father", meaning: "Padre" }, 
-                            { word: "Sister", meaning: "Hermana" }, 
-                            { word: "Brother", meaning: "Hermano" },
-                            { word: "Aunt", meaning: "Tía" },
-                            { word: "Uncle", meaning: "Tío" },
-                            { word: "Cousin", meaning: "Primo/a" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "¿Cómo se dice 'Padre' en inglés?", options: ["Mother", "Father", "Brother"], answer: 1 }, 
-                            { type: "fillInTheBlank", question: "Completa: 'She is my ___' (Tía).", answer: "Aunt" },
-                            { type: "translate", question: "Traduce: 'Mi prima es muy linda.'", answer: "My cousin is very nice" }
-                        ]
-                    },
-                    {
-                        title: "Los Colores",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Los Colores (Colors)</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Los colores son adjetivos que usamos para describir el mundo. En inglés, el adjetivo de color siempre se coloca <strong>antes</strong> del objeto que describe.</p></div>',
-                        examples: [
-                            { en: "My favorite color is black.", es: "Mi color favorito es el negro." }, 
-                            { en: "The t-shirt is white.", es: "La camiseta es blanca." },
-                            { en: "His belt is brown.", es: "Su cinturón es marrón/café." }
-                        ],
-                        vocabulary: [
-                            { word: "Red", meaning: "Rojo" }, 
-                            { word: "Blue", meaning: "Azul" }, 
-                            { word: "Yellow", meaning: "Amarillo" }, 
-                            { word: "Green", meaning: "Verde" },
-                            { word: "Orange", meaning: "Naranja" },
-                            { word: "Purple", meaning: "Morado" },
-                            { word: "Black", meaning: "Negro" },
-                            { word: "White", meaning: "Blanco" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "¿De qué color es el sol?", options: ["Blue", "Green", "Yellow"], answer: 2 }, 
-                            { type: "fillInTheBlank", question: "Completa la frase: 'The sky is ___.' (El cielo es azul)", answer: "blue" },
-                            { type: "translate", question: "Traduce: 'No me gusta el color café.'", answer: "I don't like the color brown" }
-                        ]
-                    },
-                    {
-                        title: "Saludos (Greetings)",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Saludos y Despedidas</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Saber cómo iniciar y terminar una conversación es crucial. Aprenderás las formas más comunes de saludar y despedirte en inglés.</p></div>',
-                        examples: [
-                            { en: "How are you?", es: "¿Cómo estás?" },
-                            { en: "Nice to meet you.", es: "Encantado de conocerte." },
-                            { en: "Have a nice day.", es: "Que tengas un buen día." }
-                        ],
-                        vocabulary: [
-                            { word: "Hi / Hello", meaning: "Hola" },
-                            { word: "Good morning", meaning: "Buenos días" },
-                            { word: "Good afternoon", meaning: "Buenas tardes" },
-                            { word: "Good evening", meaning: "Buenas noches (al llegar)" },
-                            { word: "Good night", meaning: "Buenas noches (al despedirse)" },
-                            { word: "Bye / Goodbye", meaning: "Adiós" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "¿Qué dices al llegar a un lugar por la mañana?", options: ["Good night", "Good morning", "Goodbye"], answer: 1 },
-                            { type: "fillInTheBlank", question: "Completa la frase: 'See you ___.' (Nos vemos mañana)", answer: "tomorrow" },
-                            { type: "translate", question: "Traduce: '¿Cómo estás?'", answer: "How are you?" }
-                        ]
-                    }
-                ]
-            },
-            "A2": {
-                name: "Elemental",
-                lessons: [
-                    {
-                        title: "El Trabajo (Work)",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">El Trabajo y las Profesiones</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Hablar sobre tu trabajo o profesión es una parte importante de las conversaciones diarias. Aprenderás vocabulario para describir lo que haces y dónde trabajas.</p></div>',
-                        examples: [
-                            { en: "I have to go to work.", es: "Me tengo que ir al trabajo." },
-                            { en: "Do you like your new job?", es: "¿Te gusta tu nuevo trabajo?" },
-                            { en: "My husband works in a law firm.", es: "Mi esposo trabaja en un bufete de abogados." }
-                        ],
-                        vocabulary: [
-                            { word: "Work", meaning: "Trabajo / Trabajar" },
-                            { word: "Job", meaning: "Empleo / Puesto" },
-                            { word: "Company", meaning: "Compañía / Empresa" },
-                            { word: "Boss", meaning: "Jefe" },
-                            { word: "Secretary", meaning: "Secretaria/o" },
-                            { word: "Office", meaning: "Oficina" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "¿Cómo se dice 'Jefe' en inglés?", options: ["Job", "Boss", "Work"], answer: 1 },
-                            { type: "fillInTheBlank", question: "Completa la frase: 'I\'m a ___.' (Soy secretaria)", answer: "secretary" },
-                            { type: "translate", question: "Traduce: '¿Dónde trabajas?'", answer: "Where do you work?" }
-                        ]
-                    },
-                    {
-                        title: "Disculpas (Apologies)",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Pidiendo Disculpas</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Saber disculparse es una señal de buena educación. Hay varias formas de hacerlo, desde un simple <strong>Sorry</strong> hasta un más formal <strong>I apologize</strong>.</p></div>',
-                        examples: [
-                            { en: "Sorry, I'm late.", es: "Lo siento, llego tarde." },
-                            { en: "Excuse me.", es: "Disculpe." },
-                            { en: "Please forgive me.", es: "Por favor, perdóname." }
-                        ],
-                        vocabulary: [
-                            { word: "Sorry", meaning: "Lo siento" },
-                            { word: "Excuse me", meaning: "Disculpe / Permiso" },
-                            { word: "Apologize", meaning: "Disculparse" },
-                            { word: "Forgive", meaning: "Perdonar" },
-                            { word: "Mistake", meaning: "Error" },
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "¿Cuál es la forma más común e informal de pedir disculpas?", options: ["I apologize", "Sorry", "Forgive me"], answer: 1 },
-                            { type: "fillInTheBlank", question: "Completa la frase: 'That\'s my ___.' (Es mi culpa / error)", answer: "fault" },
-                            { type: "translate", question: "Traduce: 'No hay problema.'", answer: "No problem" }
-                        ]
-                    },
-                    {
-                        title: "Haciendo Preguntas (Asking Questions)",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Palabras Interrogativas (Wh- Words)</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Para pedir información específica, usamos palabras interrogativas como <strong>What</strong> (Qué), <strong>Where</strong> (Dónde), <strong>When</strong> (Cuándo), <strong>Who</strong> (Quién), <strong>Why</strong> (Por qué) y <strong>How</strong> (Cómo).</p></div>',
-                        examples: [
-                            { en: "What is your name?", es: "¿Cuál es tu nombre?" },
-                            { en: "Where do you live?", es: "¿Dónde vives?" },
-                            { en: "Why are you laughing?", es: "¿Por qué te estás riendo?" }
-                        ],
-                        vocabulary: [
-                            { word: "What", meaning: "Qué / Cuál" },
-                            { word: "Where", meaning: "Dónde" },
-                            { word: "When", meaning: "Cuándo" },
-                            { word: "Who", meaning: "Quién" },
-                            { word: "Why", meaning: "Por qué" },
-                            { word: "How", meaning: "Cómo" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "¿Qué palabra se usa para preguntar sobre una persona?", options: ["What", "When", "Who"], answer: 2 },
-                            { type: "fillInTheBlank", question: "Completa la pregunta: '___ is the party?' (¿Cuándo es la fiesta?)", answer: "When" },
-                            { type: "translate", question: "Traduce: '¿Qué comiste?'", answer: "What did you eat?" }
-                        ]
-                    },
-                    {
-                        title: "Presente Simple",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Presente Simple</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Se usa para hablar de rutinas, hábitos y hechos generales. En la tercera persona del singular (he, she, it), se añade una <strong>-s</strong> al final del verbo.</p></div>',
-                        examples: [
-                            { en: "I work every day.", es: "Yo trabajo todos los días." },
-                            { en: "She works at a hospital.", es: "Ella trabaja en un hospital." },
-                            { en: "Do you play soccer?", es: "¿Juegas al fútbol?" }
-                        ],
-                        vocabulary: [
-                            { word: "Play", meaning: "Jugar" },
-                            { word: "Work", meaning: "Trabajar" },
-                            { word: "Study", meaning: "Estudiar" },
-                            { word: "Always", meaning: "Siempre" },
-                            { word: "Sometimes", meaning: "A veces" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "Completa la frase: 'He ___ English.'", options: ["study", "studies", "studys"], answer: 1 },
-                            { type: "fillInTheBlank", question: "Completa la frase: 'They don't ___ here.' (live)", answer: "live" },
-                            { type: "translate", question: "Traduce: '¿Ella come pizza?'", answer: "Does she eat pizza?" }
-                        ]
-                    },
-                    {
-                        title: "Dinero y Números (Money & Numbers)",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Hablando de Dinero y Números</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Entender los números y el vocabulario sobre dinero es esencial para la vida diaria, como ir de compras o hablar de precios.</p></div>',
-                        examples: [
-                            { en: "How much is it?", es: "¿Cuánto cuesta?" },
-                            { en: "It costs ten dollars.", es: "Cuesta diez dólares." },
-                            { en: "I don't have any cash.", es: "No tengo dinero en efectivo." }
-                        ],
-                        vocabulary: [
-                            { word: "One, Two, Three", meaning: "Uno, Dos, Tres" },
-                            { word: "Ten, Twenty, Thirty", meaning: "Diez, Veinte, Treinta" },
-                            { word: "Money", meaning: "Dinero" },
-                            { word: "Cash", meaning: "Dinero en efectivo" },
-                            { word: "Credit Card", meaning: "Tarjeta de crédito" },
-                            { word: "Price", meaning: "Precio" },
-                            { word: "Expensive", meaning: "Caro" },
-                            { word: "Cheap", meaning: "Barato" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "¿Cómo se dice 'Barato' en inglés?", options: ["Cash", "Price", "Cheap"], answer: 2 },
-                            { type: "fillInTheBlank", question: "Completa: 'One hundred' es el número...", answer: "100" },
-                            { type: "translate", question: "Traduce: '¿Puedo pagar con tarjeta de crédito?'", answer: "Can I pay with a credit card?" }
-                        ]
-                    }
-                ]
-            },
-            "B1": {
-                name: "Intermedio",
-                lessons: [
-                    {
-                        title: "La Salud (Health)",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Hablando sobre la Salud</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Es importante saber cómo describir síntomas y problemas de salud para poder pedir ayuda o explicar cómo te sientes.</p></div>',
-                        examples: [
-                            { en: "I don't feel good.", es: "No me siento bien." },
-                            { en: "I have a headache.", es: "Tengo dolor de cabeza." },
-                            { en: "I need to go to the doctor.", es: "Necesito ir al médico." }
-                        ],
-                        vocabulary: [
-                            { word: "Sick", meaning: "Enfermo/a" },
-                            { word: "Doctor", meaning: "Médico/a" },
-                            { word: "Hospital", meaning: "Hospital" },
-                            { word: "Headache", meaning: "Dolor de cabeza" },
-                            { word: "Fever", meaning: "Fiebre" },
-                            { word: "Pain", meaning: "Dolor" },
-                            { word: "Rest", meaning: "Descansar" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "Si te duele la cabeza, tienes un...", options: ["Fever", "Pain", "Headache"], answer: 2 },
-                            { type: "fillInTheBlank", question: "Completa la frase: 'I think I have the ___.' (Creo que tengo gripe)", answer: "flu" },
-                            { type: "translate", question: "Traduce: 'Necesito una pastilla para el dolor.'", answer: "I need a pill for the pain" }
-                        ]
-                    },
-                    {
-                        title: "De Compras (Shopping)",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Vocabulario para ir de Compras</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Ir de compras es una actividad común. Aprender estas frases te ayudará a interactuar en tiendas y a preguntar por lo que necesitas.</p></div>',
-                        examples: [
-                            { en: "How much is it?", es: "¿Cuánto cuesta?" },
-                            { en: "Can I help you?", es: "¿Puedo ayudarle?" },
-                            { en: "I\'m just looking, thanks.", es: "Solo estoy mirando, gracias." }
-                        ],
-                        vocabulary: [
-                            { word: "Store", meaning: "Tienda" },
-                            { word: "To buy", meaning: "Comprar" },
-                            { word: "To pay", meaning: "Pagar" },
-                            { word: "Price", meaning: "Precio" },
-                            { word: "Discount", meaning: "Descuento" },
-                            { word: "Receipt", meaning: "Recibo / Ticket" },
-                            { word: "Fitting room", meaning: "Probador" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "¿Qué dices si solo estás mirando en una tienda?", options: ["How much is it?", "I'll take it.", "I'm just looking, thanks."], answer: 2 },
-                            { type: "fillInTheBlank", question: "Completa la frase: 'Do you have this in a bigger ___?' (talla)", answer: "size" },
-                            { type: "translate", question: "Traduce: 'Quisiera comprar estos zapatos.'", answer: "I would like to buy these shoes" }
-                        ]
-                    },
-                    {
-                        title: "Dando Órdenes (Giving Orders)",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">El Modo Imperativo</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Usamos el imperativo para dar órdenes, instrucciones, consejos o hacer peticiones. Se forma usando el infinitivo del verbo sin \'to\'. Para la forma negativa, usamos <strong>Don\'t</strong>.</p></div>',
-                        examples: [
-                            { en: "Come here.", es: "Ven aquí." },
-                            { en: "Don't do that!", es: "¡No hagas eso!" },
-                            { en: "Be careful.", es: "Ten cuidado." }
-                        ],
-                        vocabulary: [
-                            { word: "Come", meaning: "Venir" },
-                            { word: "Go", meaning: "Ir" },
-                            { word: "Listen", meaning: "Escuchar" },
-                            { word: "Be quiet", meaning: "Estar en silencio" },
-                            { word: "Hurry up", meaning: "Darse prisa" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "¿Cuál es la forma negativa de 'Do it'?", options: ["Not do it", "Doesn't do it", "Don't do it"], answer: 2 },
-                            { type: "fillInTheBlank", question: "Completa la orden: '___ to me.' (Escúchame)", answer: "Listen" },
-                            { type: "translate", question: "Traduce: 'No llegues tarde.'", answer: "Don't be late" }
-                        ]
-                    },
-                     {
-                        title: "El Clima (The Weather)",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Hablando sobre el Clima</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Para describir el clima, normalmente usamos la estructura <strong>"It is..."</strong> o su contracción <strong>"It\'s..."</strong> seguida de un adjetivo.</p></div>',
-                        examples: [
-                            { en: "The weather is nice today.", es: "El clima está agradable hoy." },
-                            { en: "It's raining.", es: "Está lloviendo." },
-                            { en: "It's very cold outside.", es: "Hace mucho frío afuera." }
-                        ],
-                        vocabulary: [
-                            { word: "Weather", meaning: "Clima / Tiempo" },
-                            { word: "Sunny", meaning: "Soleado" },
-                            { word: "Cloudy", meaning: "Nublado" },
-                            { word: "Rainy", meaning: "Lluvioso" },
-                            { word: "Windy", meaning: "Vientoso" },
-                            { word: "Cold", meaning: "Frío" },
-                            { word: "Hot", meaning: "Caliente / Caluroso" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "¿Cómo se dice 'soleado' en inglés?", options: ["Rainy", "Sunny", "Cloudy"], answer: 1 },
-                            { type: "fillInTheBlank", question: "Completa la frase: 'Take your umbrella, it's ___.' (lluvioso)", answer: "rainy" },
-                            { type: "translate", question: "Traduce: 'No me gusta el clima frío.'", answer: "I don't like cold weather" }
-                        ]
-                    }
-                ]
-            },
-            "B2": { 
-                name: "Intermedio-Alto", 
-                lessons: [
-                    {
-                        title: "Planes y Predicciones",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Hablando del Futuro: "Will" vs "Going to"</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Usamos <strong>going to</strong> para planes ya decididos y predicciones con evidencia.</p><p>Usamos <strong>will</strong> para decisiones espontáneas, promesas y predicciones basadas en opiniones.</p></div>',
-                        examples: [
-                            { en: "I am going to travel to Japan next year.", es: "Voy a viajar a Japón el año que viene. (Plan)" },
-                            { en: "Look at those clouds! It's going to rain.", es: "¡Mira esas nubes! Va a llover. (Evidencia)" },
-                            { en: "I think I will have the salad.", es: "Creo que pediré la ensalada. (Decisión espontánea)" }
-                        ],
-                        vocabulary: [
-                            { word: "Plan", meaning: "Plan / Planear" },
-                            { word: "Prediction", meaning: "Predicción" },
-                            { word: "Tomorrow", meaning: "Mañana" },
-                            { word: "Next week", meaning: "La próxima semana" },
-                            { word: "Probably", meaning: "Probablemente" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "Para un plan que ya decidiste, usas...", options: ["will", "going to"], answer: 1 },
-                            { type: "fillInTheBlank", question: "Completa: 'It\'s cold. I think I ___ close the window.' (Decisión en el momento)", answer: "will" },
-                            { type: "translate", question: "Traduce: 'Ellos van a comprar un coche nuevo.'", answer: "They are going to buy a new car" }
-                        ]
-                    },
-                    {
-                        title: "Pasado Perfecto",
-                        concept: '<h3 class="text-2xl font-bold text-teal-300 mb-4">Pasado Perfecto (Past Perfect)</h3><div class="space-y-4 concept-text text-lg text-gray-300"><p>Se usa para describir una acción que ocurrió <strong>antes</strong> de otra acción en el pasado. Se forma con <strong>had + participio pasado</strong>.</p></div>',
-                        examples: [
-                            { en: "When I arrived, the movie had already started.", es: "Cuando llegué, la película ya había comenzado." },
-                            { en: "She had studied English before she moved to New York.", es: "Ella había estudiado inglés antes de mudarse a Nueva York." }
-                        ],
-                        vocabulary: [
-                            { word: "Already", meaning: "Ya" },
-                            { word: "Before", meaning: "Antes" },
-                            { word: "After", meaning: "Después" },
-                            { word: "By the time", meaning: "Para cuando" }
-                        ],
-                        practice: [
-                            { type: "multipleChoice", question: "Which action happened first in: 'He had finished his homework when his friends called'?", options: ["His friends called", "He finished his homework"], answer: 1 },
-                            { type: "fillInTheBlank", question: "Completa la frase: 'I ___ never ___ (see) such a beautiful place before I went to Hawaii.'", answer: "had seen" },
-                            { type: "translate", question: "Traduce: 'Ella ya se había ido.'", answer: "She had already left" }
-                        ]
-                    }
-                ] 
-            },
-            "C1": { name: "Avanzado", lessons: [] },
-            "C2": { name: "Maestría", lessons: [] }
-        };
-        const levelOrder = ["A1", "A2", "B1", "B2", "C1", "C2"];
-        let currentProgress = {};
-        
-        function initializeAppAndRun() {
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const db = getFirestore(app);
-            let currentUserId = null;
-            let unsubscribeProgress = null;
-
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUserId = user.uid;
-                    if (unsubscribeProgress) unsubscribeProgress();
-                    const progressRef = doc(db, `artifacts/${appId}/users/${currentUserId}/progress/main`);
-                    unsubscribeProgress = onSnapshot(progressRef, (docSnap) => {
-                        if (docSnap.exists()) {
-                            currentProgress = docSnap.data();
-                        } else {
-                            currentProgress = { level: "A1", lesson: 0, practiceIndex: -1, completedLevels: [], xp: 0, userLevel: 1 };
-                            setDoc(progressRef, currentProgress).catch(err => console.error("Error al crear progreso:", err));
-                        }
-                        renderUserStats(currentProgress);
-                        if (!document.body.dataset.view) {
-                            renderContent(currentProgress, db, currentUserId);
-                        }
-                    });
-                } else {
-                    try {
-                        const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                        if (token) { await signInWithCustomToken(auth, token); } else { await signInAnonymously(auth); }
-                    } catch (error) { console.error("Error en la autenticación:", error); }
-                }
-            });
-        }
-        
-        function renderUserStats(progress) {
-            const { userLevel = 1, xp = 0 } = progress;
-            const xpForNextLevel = userLevel * 100;
-            const xpForCurrentLevel = (userLevel - 1) * 100;
-            const currentLevelXp = xp - xpForCurrentLevel;
-            const requiredXpForLevel = xpForNextLevel - xpForCurrentLevel;
-            const percentage = Math.max(0, Math.min(100, (currentLevelXp / requiredXpForLevel) * 100));
-
-            userInfoDiv.innerHTML = `
-                <div class="text-sm font-bold">Nivel ${userLevel}</div>
-                <div class="w-full xp-bar-bg rounded-full h-2.5 my-1"><div class="xp-bar-fill h-2.5 rounded-full" style="width: ${percentage}%"></div></div>
-                <div class="text-xs text-amber-300 font-mono">${xp} / ${xpForNextLevel} XP</div>`;
-        }
-
-        function renderContent(progress, db, userId) {
-            const { level, lesson } = progress;
-            if(!courseData[level] || !courseData[level].lessons[lesson]) {
-                 console.warn("Progreso inválido. Reiniciando.");
-                 setDoc(doc(db, `artifacts/${appId}/users/${userId}/progress/main`), { level: "A1", lesson: 0, practiceIndex: -1, completedLevels: [], xp: progress.xp || 0, userLevel: progress.userLevel || 1 });
-                 return;
-            }
-            const { practiceIndex } = progress;
-            const currentLessonData = courseData[level].lessons[lesson];
-            if (practiceIndex >= 0 && practiceIndex < currentLessonData.practice.length) {
-                renderPractice(progress, db, userId);
-            } else {
-                 renderLevelView(progress, db, userId);
-            }
-        }
-
-        function renderLevelView(progress, db, userId) {
-            document.body.dataset.view = ''; 
-            contentDiv.innerHTML = `
-                <div class="flex justify-center mb-8">
-                    <button id="review-vocab-btn" class="w-full sm:w-auto px-8 py-3 rounded-lg font-bold btn-secondary">📚 Repasar Vocabulario</button>
-                </div>
-                <h2 class="text-2xl font-bold mb-6 text-center">Elige tu Nivel de Curso</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    ${levelOrder.map(levelId => {
-                        const levelData = courseData[levelId];
-                        const isCompleted = progress.completedLevels.includes(levelId);
-                        const isCurrent = progress.level === levelId;
-                        const isLocked = !isCompleted && !isCurrent && levelId !== 'A1';
-                        let statusPill = isLocked ? '<span class="text-xs font-bold py-1 px-3 rounded-full bg-gray-700/50 text-gray-400">Bloqueado</span>' : (isCompleted ? '<span class="text-xs font-bold py-1 px-3 rounded-full bg-green-500/20 text-green-300">Completado</span>' : '<span class="text-xs font-bold py-1 px-3 rounded-full bg-blue-500/20 text-blue-300">Actual</span>');
-                        let cardClasses = `p-6 rounded-xl transition-all duration-300 transform ${isLocked ? 'bg-gray-800/50 opacity-60 cursor-not-allowed' : 'bg-gray-800 border-2 ' + (isCurrent ? 'border-blue-500' : 'border-green-500') + ' cursor-pointer hover:bg-gray-700 hover:scale-105'}`;
-                        return `<div class="${cardClasses} fade-in level-card" data-level-id="${isLocked ? '' : levelId}"><div class="flex justify-between items-center mb-3"><h3 class="text-xl font-bold">${levelId} - ${levelData.name}</h3>${statusPill}</div></div>`;
-                    }).join('')}
-                </div>`;
-            
-            document.getElementById('review-vocab-btn').addEventListener('click', () => renderVocabularyReview(progress, db, userId));
-            document.querySelectorAll('.level-card').forEach(card => {
-                if (card.dataset.levelId) {
-                    card.addEventListener('click', () => renderLessonListView(card.dataset.levelId, progress, db, userId));
-                }
-            });
-        }
-        
-        function renderLessonListView(levelId, progress, db, userId) {
-             document.body.dataset.view = '';
-             const lessonData = courseData[levelId].lessons;
-             contentDiv.innerHTML = `
-                <div class="fade-in">
-                    <button id="back-to-levels-btn" class="mb-6 text-sm text-blue-400 hover:underline">&larr; Volver a los niveles</button>
-                    <h2 class="text-2xl font-bold mb-6">Nivel ${levelId}: ${courseData[levelId].name}</h2>
-                    <div class="space-y-4">
-                        ${lessonData.map((lesson, index) => {
-                            const isLessonCompleted = (progress.level === levelId && progress.lesson > index) || progress.completedLevels.includes(levelId) || (progress.level !== levelId && levelOrder.indexOf(progress.level) > levelOrder.indexOf(levelId));
-                            const isCurrentLesson = progress.level === levelId && progress.lesson === index;
-                            const isLocked = !isCurrentLesson && !isLessonCompleted;
-                            let itemClasses = `p-4 rounded-lg flex items-center gap-4 lesson-item ${isLocked ? 'bg-gray-800/50 opacity-50 cursor-not-allowed' : (isCurrentLesson ? 'bg-blue-500/20 border border-blue-500 cursor-pointer' : 'bg-green-800/30 cursor-pointer')}`;
-                            return `<div class="${itemClasses}" data-lesson-index="${isLocked ? '' : index}" data-level-id="${isLocked ? '' : levelId}"><span class="font-semibold">${index + 1}. ${lesson.title}</span></div>`;
-                        }).join('')}
-                    </div>
-                </div>`;
-            
-            document.getElementById('back-to-levels-btn').addEventListener('click', () => renderLevelView(progress, db, userId));
-            document.querySelectorAll('.lesson-item').forEach(item => {
-                if(item.dataset.levelId) {
-                    item.addEventListener('click', () => renderTheoryView(item.dataset.levelId, parseInt(item.dataset.lessonIndex), progress, db, userId));
-                }
-            });
-        }
-
-        function renderVocabularyReview(progress, db, userId) {
-            // ... (Función de repaso sin cambios)
-        }
-
-        function renderTheoryView(levelId, lessonIndex, progress, db, userId) {
-            document.body.dataset.view = '';
-            const lesson = courseData[levelId].lessons[lessonIndex];
-            
-            contentDiv.innerHTML = `
-            <div class="bg-gray-800 p-6 md:p-8 rounded-lg fade-in">
-                <button id="back-to-lessons-btn" class="mb-6 text-sm text-blue-400 hover:underline">&larr; Volver a las lecciones</button>
-                <article>
-                    ${lesson.concept}
-                    <div class="my-8 border-t border-gray-700"></div>
-                    <h4 class="text-xl font-bold text-teal-300 mb-4">Ejemplos Prácticos</h4>
-                    <ul class="space-y-2 mb-8">${lesson.examples.map(ex => `<li class="p-3 bg-gray-900 rounded-md"><strong class="text-white">${ex.en}</strong><br><em class="text-gray-400 text-sm">${ex.es}</em></li>`).join('')}</ul>
-                    <h4 class="text-xl font-bold text-teal-300 mb-4">Vocabulario Clave</h4>
-                    <ul class="space-y-2">${lesson.vocabulary.map(voc => `<li class="p-3 bg-gray-900 rounded-md"><strong class="text-white">${voc.word}</strong>: <span class="text-gray-300">${voc.meaning}</span></li>`).join('')}</ul>
-                </article>
-                <div class="my-8 border-t border-gray-700"></div>
-                <div id="ai-practice-container"></div>
-                <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mt-10">
-                    <button id="start-practice-btn" class="w-full sm:w-auto px-8 py-3 bg-blue-600 rounded-lg font-bold btn-primary">Comenzar Práctica</button>
-                    <button id="generate-ai-btn" class="w-full sm:w-auto px-8 py-3 rounded-lg font-bold btn-primary btn-ai">✨ Práctica con IA</button>
-                </div>
-            </div>`;
-             document.getElementById('back-to-lessons-btn').addEventListener('click', () => renderLessonListView(levelId, progress, db, userId));
-             document.getElementById('start-practice-btn').addEventListener('click', () => startPractice(levelId, lessonIndex, db, userId));
-             document.getElementById('generate-ai-btn').addEventListener('click', () => generateAIPractice(levelId, lessonIndex));
-        }
-
-        function renderPractice(progress, db, userId) {
-            document.body.dataset.view = '';
-            const { level, lesson, practiceIndex } = progress;
-            const exercise = courseData[level].lessons[lesson].practice[practiceIndex];
-            let practiceHTML = '';
-            switch (exercise.type) {
-                case 'multipleChoice':
-                    practiceHTML = exercise.options.map((option, index) => `<label class="flex items-center p-3 rounded-lg bg-gray-700/50 hover:bg-gray-700 cursor-pointer"><input type="radio" name="answer" value="${index}" class="form-radio h-5 w-5 text-blue-500 bg-gray-900 border-gray-600 focus:ring-blue-500"><span class="ml-3">${option}</span></label>`).join('');
-                    break;
-                case 'fillInTheBlank': case 'translate':
-                    practiceHTML = `<input type="text" id="textAnswer" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="Escribe tu respuesta aquí...">`;
-                    break;
-            }
-            contentDiv.innerHTML = `
-            <div class="bg-gray-800 p-6 md:p-8 rounded-lg fade-in">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold">Práctica: ${courseData[level].lessons[lesson].title}</h3>
-                    <span class="text-sm font-mono text-gray-400">${practiceIndex + 1} / ${courseData[level].lessons[lesson].practice.length}</span>
-                </div>
-                <div class="w-full xp-bar-bg rounded-full h-2.5 mb-6"><div class="bg-blue-500 h-2.5 rounded-full" style="width: ${((practiceIndex) / courseData[level].lessons[lesson].practice.length) * 100}%"></div></div>
-                <p class="mb-6 text-lg">${exercise.question}</p>
-                <div id="options" class="space-y-3">${practiceHTML}</div>
-                <div id="result" class="mt-4 text-sm font-bold h-6"></div>
-                <button id="submitAnswer" class="w-full sm:w-auto mt-6 px-6 py-3 bg-blue-600 rounded-lg font-bold btn-primary">Comprobar</button>
-            </div>`;
-            document.getElementById('submitAnswer').addEventListener('click', () => handleAnswerSubmit(progress, db, userId));
-        }
-        
-        async function generateAIPractice(levelId, lessonIndex) {
-            // ... (Función de práctica con IA sin cambios)
-        }
-
-        async function startPractice(levelId, lessonIndex, db, userId) {
-            const newProgress = { ...currentProgress, level: levelId, lesson: lessonIndex, practiceIndex: 0 };
-            const progressRef = doc(db, `artifacts/${appId}/users/${userId}/progress/main`);
-            await setDoc(progressRef, newProgress);
-        }
-
-        async function handleAnswerSubmit(progress, db, userId) {
-            const resultDiv = document.getElementById('result');
-            const submitBtn = document.getElementById('submitAnswer');
-            if (submitBtn.disabled) return; 
-
-            const { level, lesson, practiceIndex } = progress;
-            const exercise = courseData[level].lessons[lesson].practice[practiceIndex];
-            let isCorrect = false;
-
-            if(exercise.type === 'multipleChoice') {
-                const selected = document.querySelector('input[name="answer"]:checked');
-                if(!selected) { resultDiv.textContent = 'Selecciona una opción.'; resultDiv.className = 'mt-4 text-sm font-bold text-yellow-400'; return; }
-                isCorrect = parseInt(selected.value) === exercise.answer;
-            } else { 
-                const input = document.getElementById('textAnswer');
-                isCorrect = input.value.trim().toLowerCase() === exercise.answer.toLowerCase();
-            }
-
-            if(isCorrect) {
-                resultDiv.textContent = '¡Correcto! +10 XP';
-                resultDiv.className = 'mt-4 text-sm font-bold text-green-400';
-                submitBtn.textContent = 'Continuar';
-                submitBtn.className = 'w-full sm:w-auto mt-6 px-6 py-3 bg-green-600 rounded-lg font-bold btn-primary';
-                submitBtn.disabled = true;
-                
-                const progressRef = doc(db, `artifacts/${appId}/users/${userId}/progress/main`);
-                let newProgress = { ...currentProgress };
-                newProgress.xp = (newProgress.xp || 0) + 10;
-                const xpForNextLevel = (newProgress.userLevel || 1) * 100;
-                if (newProgress.xp >= xpForNextLevel) { newProgress.userLevel += 1; }
-                await setDoc(progressRef, newProgress, { merge: true });
-
-                setTimeout(() => advanceProgress(db, userId), 1000);
-            } else {
-                resultDiv.textContent = 'Incorrecto. ¡Inténtalo de nuevo!';
-                resultDiv.className = 'mt-4 text-sm font-bold text-red-400';
-            }
-        }
-
-        async function advanceProgress(db, userId) {
-            const progressRef = doc(db, `artifacts/${appId}/users/${userId}/progress/main`);
-            let newProgress = { ...currentProgress };
-            newProgress.practiceIndex++;
-            
-            const totalPractice = courseData[newProgress.level].lessons[newProgress.lesson].practice.length;
-
-            if (newProgress.practiceIndex >= totalPractice) {
-                newProgress.lesson++;
-                newProgress.practiceIndex = -1; 
-                newProgress.xp += 50; 
-
-                const totalLessons = courseData[newProgress.level].lessons.length;
-                if (newProgress.lesson >= totalLessons) {
-                    if (!newProgress.completedLevels.includes(newProgress.level)) {
-                        newProgress.completedLevels.push(newProgress.level);
-                    }
-                    const levelIndex = levelOrder.indexOf(newProgress.level);
-                    if (levelIndex < levelOrder.length - 1) {
-                        newProgress.level = levelOrder[levelIndex + 1];
-                        newProgress.lesson = 0;
-                    } else {
-                         newProgress.practiceIndex = 0; 
-                    }
-                }
-                const xpForNextLevel = newProgress.userLevel * 100;
-                if (newProgress.xp >= xpForNextLevel) { newProgress.userLevel += 1; }
-            }
-            await setDoc(progressRef, newProgress);
-        }
-    </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English Level Up - Curso Intensivo</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-    
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .concept-text { font-family: 'Lora', serif; }
-        .fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .btn-primary, .btn-ai, .btn-secondary { transition: all 0.3s ease; }
-        .btn-primary:hover, .btn-ai:hover, .btn-secondary:hover { transform: translateY(-2px); }
-        .btn-primary:hover { box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
-        .btn-ai { background-color: #8B5CF6; } /* Violet-500 */
-        .btn-ai:hover { box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4); }
-        .btn-secondary { background-color: #10B981; } /* Emerald-500 */
-        .btn-secondary:hover { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
-        
-        .xp-bar-bg { background-color: #374151; } /* gray-700 */
-        .xp-bar-fill { background-color: #FBBF24; transition: width 0.5s ease-in-out; } /* amber-400 */
-
-        .flashcard-container { perspective: 1000px; }
-        .flashcard { width: 100%; height: 200px; position: relative; transition: transform 0.6s; transform-style: preserve-3d; }
-        .flashcard.is-flipped { transform: rotateY(180deg); }
-        .flashcard-face { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; display: flex; justify-content: center; align-items: center; text-align: center; padding: 20px; border-radius: 1rem; }
-        .flashcard-front { background-color: #1F2937; border: 2px solid #4B5563; }
-        .flashcard-back { background-color: #374151; border: 2px solid #10B981; transform: rotateY(180deg); }
-    </style>
-</head>
-<body class="bg-gray-900 text-white antialiased">
-
-    <div id="app" class="container mx-auto p-4 md:p-8">
-        
-        <header class="flex flex-col sm:flex-row justify-between items-center mb-8 border-b border-gray-700 pb-4 gap-4">
-            <h1 class="text-3xl md:text-4xl font-bold text-center sm:text-left bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-teal-300">
-                English Level Up ✨
-            </h1>
-            <div id="userInfoContainer" class="w-full sm:w-1/3 text-center sm:text-right">
-                 <div id="userInfo"></div>
-            </div>
-        </header>
-
-        <main id="course-container">
-             <!-- El contenido del curso (niveles, lecciones, etc.) se renderizará aquí -->
-        </main>
-
-        <footer class="text-center text-xs text-gray-600 mt-12">
-            <p>&copy; 2024 English Level Up. Potenciado por Gemini.</p>
-        </footer>
-    </div>
-
-    <script type="module">
-        const courseContainer = document.getElementById('course-container');
-        const userInfoContainer = document.getElementById('userInfoContainer');
-        const userInfoDiv = document.getElementById('userInfo');
-
-        const courseData = {
+        const courseData = { /* Contenido del curso completo */
             "A1": {
                 name: "Principiante",
                 lessons: [
@@ -1130,28 +489,68 @@
         let currentProgress = {};
         
         function initializeAppAndRun() {
-            // Cargar progreso del localStorage al iniciar
-            loadProgress();
-            renderUserStats(currentProgress);
-            renderContent(currentProgress);
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            let unsubscribeProgress = null;
 
-            // Guardar progreso al cerrar la página
-            window.addEventListener('beforeunload', saveProgress);
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    authContainer.style.display = 'none';
+                    courseContainer.style.display = 'block';
+                    userInfoContainer.style.display = 'block';
+                    
+                    if (unsubscribeProgress) unsubscribeProgress();
+                    const progressRef = doc(db, `artifacts/${appId}/users/${user.uid}/progress/main`);
+                    unsubscribeProgress = onSnapshot(progressRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            currentProgress = docSnap.data();
+                        } else {
+                            currentProgress = { level: "A1", lesson: 0, practiceIndex: -1, completedLevels: [], xp: 0, userLevel: 1 };
+                            setDoc(progressRef, currentProgress).catch(err => console.error("Error al crear progreso:", err));
+                        }
+                        renderUserStats(currentProgress);
+                        renderContent(currentProgress, db, user.uid);
+                    });
+                } else {
+                    authContainer.style.display = 'block';
+                    courseContainer.style.display = 'none';
+                    userInfoContainer.style.display = 'none';
+                    if (unsubscribeProgress) unsubscribeProgress();
+                }
+            });
+
+            document.getElementById('login-btn').addEventListener('click', async () => {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const authErrorDiv = document.getElementById('auth-error');
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    authErrorDiv.textContent = '';
+                } catch (error) {
+                    console.error("Error al iniciar sesión:", error.code);
+                    authErrorDiv.textContent = 'Error: ' + error.message;
+                }
+            });
+
+            document.getElementById('register-btn').addEventListener('click', async () => {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const authErrorDiv = document.getElementById('auth-error');
+                try {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    authErrorDiv.textContent = '';
+                } catch (error) {
+                    console.error("Error al registrarse:", error.code);
+                     authErrorDiv.textContent = 'Error: ' + error.message;
+                }
+            });
+
+             document.getElementById('logout-btn').addEventListener('click', () => {
+                signOut(auth);
+            });
         }
         
-        function loadProgress() {
-            const savedProgress = localStorage.getItem('english-level-progress');
-            if (savedProgress) {
-                currentProgress = JSON.parse(savedProgress);
-            } else {
-                currentProgress = { level: "A1", lesson: 0, practiceIndex: -1, completedLevels: [], xp: 0, userLevel: 1 };
-            }
-        }
-
-        function saveProgress() {
-            localStorage.setItem('english-level-progress', JSON.stringify(currentProgress));
-        }
-
         function renderUserStats(progress) {
             const { userLevel = 1, xp = 0 } = progress;
             const xpForNextLevel = userLevel * 100;
@@ -1166,25 +565,24 @@
                 <div class="text-xs text-amber-300 font-mono">${xp} / ${xpForNextLevel} XP</div>`;
         }
 
-        function renderContent(progress) {
+        function renderContent(progress, db, userId) {
              const { level, lesson } = progress;
             if(!courseData[level] || !courseData[level].lessons[lesson]) {
                  console.warn("Progreso inválido. Reiniciando.");
-                 currentProgress = { level: "A1", lesson: 0, practiceIndex: -1, completedLevels: [], xp: progress.xp || 0, userLevel: progress.userLevel || 1 };
-                 saveProgress();
-                 renderLevelView(currentProgress);
+                 setDoc(doc(db, `artifacts/${appId}/users/${userId}/progress/main`), { level: "A1", lesson: 0, practiceIndex: -1, completedLevels: [], xp: progress.xp || 0, userLevel: progress.userLevel || 1 });
                  return;
             }
             const { practiceIndex } = progress;
             const currentLessonData = courseData[level].lessons[lesson];
             if (practiceIndex >= 0 && practiceIndex < currentLessonData.practice.length) {
-                renderPractice(progress);
+                renderPractice(progress, db, userId);
             } else {
-                 renderLevelView(progress);
+                 renderLevelView(progress, db, userId);
             }
         }
 
-        function renderLevelView(progress) {
+        function renderLevelView(progress, db, userId) {
+            courseContainer.dataset.view = ''; 
             courseContainer.innerHTML = `
                 <div class="flex justify-center mb-8">
                     <button id="review-vocab-btn" class="w-full sm:w-auto px-8 py-3 rounded-lg font-bold btn-secondary">📚 Repasar Vocabulario</button>
@@ -1202,15 +600,16 @@
                     }).join('')}
                 </div>`;
             
-            document.getElementById('review-vocab-btn').addEventListener('click', () => renderVocabularyReview(progress));
+            document.getElementById('review-vocab-btn').addEventListener('click', () => renderVocabularyReview(progress, db, userId));
             document.querySelectorAll('.level-card').forEach(card => {
                 if (card.dataset.levelId) {
-                    card.addEventListener('click', () => renderLessonListView(card.dataset.levelId, progress));
+                    card.addEventListener('click', () => renderLessonListView(card.dataset.levelId, progress, db, userId));
                 }
             });
         }
         
-        function renderLessonListView(levelId, progress) {
+        function renderLessonListView(levelId, progress, db, userId) {
+             courseContainer.dataset.view = '';
              const lessonData = courseData[levelId].lessons;
              courseContainer.innerHTML = `
                 <div class="fade-in">
@@ -1227,19 +626,20 @@
                     </div>
                 </div>`;
             
-            document.getElementById('back-to-levels-btn').addEventListener('click', () => renderLevelView(progress));
+            document.getElementById('back-to-levels-btn').addEventListener('click', () => renderLevelView(progress, db, userId));
             document.querySelectorAll('.lesson-item').forEach(item => {
                 if(item.dataset.levelId) {
-                    item.addEventListener('click', () => renderTheoryView(item.dataset.levelId, parseInt(item.dataset.lessonIndex), progress));
+                    item.addEventListener('click', () => renderTheoryView(item.dataset.levelId, parseInt(item.dataset.lessonIndex), progress, db, userId));
                 }
             });
         }
 
-        function renderVocabularyReview(progress) {
+        function renderVocabularyReview(progress, db, userId) {
             // ... (Función de repaso sin cambios)
         }
 
-        function renderTheoryView(levelId, lessonIndex, progress) {
+        function renderTheoryView(levelId, lessonIndex, progress, db, userId) {
+            courseContainer.dataset.view = 'theory';
             const lesson = courseData[levelId].lessons[lessonIndex];
             
             courseContainer.innerHTML = `
@@ -1260,12 +660,13 @@
                     <button id="generate-ai-btn" class="w-full sm:w-auto px-8 py-3 rounded-lg font-bold btn-primary btn-ai">✨ Práctica con IA</button>
                 </div>
             </div>`;
-             document.getElementById('back-to-lessons-btn').addEventListener('click', () => renderLessonListView(levelId, progress));
-             document.getElementById('start-practice-btn').addEventListener('click', () => startPractice(levelId, lessonIndex));
+             document.getElementById('back-to-lessons-btn').addEventListener('click', () => renderLessonListView(levelId, progress, db, userId));
+             document.getElementById('start-practice-btn').addEventListener('click', () => startPractice(levelId, lessonIndex, db, userId));
              document.getElementById('generate-ai-btn').addEventListener('click', () => generateAIPractice(levelId, lessonIndex));
         }
 
-        function renderPractice(progress) {
+        function renderPractice(progress, db, userId) {
+            courseContainer.dataset.view = 'practice';
             const { level, lesson, practiceIndex } = progress;
             const exercise = courseData[level].lessons[lesson].practice[practiceIndex];
             let practiceHTML = '';
@@ -1289,22 +690,20 @@
                 <div id="result" class="mt-4 text-sm font-bold h-6"></div>
                 <button id="submitAnswer" class="w-full sm:w-auto mt-6 px-6 py-3 bg-blue-600 rounded-lg font-bold btn-primary">Comprobar</button>
             </div>`;
-            document.getElementById('submitAnswer').addEventListener('click', () => handleAnswerSubmit(progress));
+            document.getElementById('submitAnswer').addEventListener('click', () => handleAnswerSubmit(progress, db, userId));
         }
         
         async function generateAIPractice(levelId, lessonIndex) {
             // ... (Función de práctica con IA sin cambios)
         }
 
-        function startPractice(levelId, lessonIndex) {
-            currentProgress.level = levelId;
-            currentProgress.lesson = lessonIndex;
-            currentProgress.practiceIndex = 0;
-            saveProgress();
-            renderPractice(currentProgress);
+        async function startPractice(levelId, lessonIndex, db, userId) {
+            const newProgress = { ...currentProgress, level: levelId, lesson: lessonIndex, practiceIndex: 0 };
+            const progressRef = doc(db, `artifacts/${appId}/users/${userId}/progress/main`);
+            await setDoc(progressRef, newProgress);
         }
 
-        function handleAnswerSubmit(progress) {
+        async function handleAnswerSubmit(progress, db, userId) {
             const resultDiv = document.getElementById('result');
             const submitBtn = document.getElementById('submitAnswer');
             if (submitBtn.disabled) return; 
@@ -1329,51 +728,50 @@
                 submitBtn.className = 'w-full sm:w-auto mt-6 px-6 py-3 bg-green-600 rounded-lg font-bold btn-primary';
                 submitBtn.disabled = true;
                 
-                currentProgress.xp = (currentProgress.xp || 0) + 10;
-                const xpForNextLevel = (currentProgress.userLevel || 1) * 100;
-                if (currentProgress.xp >= xpForNextLevel) { currentProgress.userLevel += 1; }
-                saveProgress();
-                renderUserStats(currentProgress);
+                const progressRef = doc(db, `artifacts/${appId}/users/${userId}/progress/main`);
+                let newProgress = { ...currentProgress };
+                newProgress.xp = (newProgress.xp || 0) + 10;
+                const xpForNextLevel = (newProgress.userLevel || 1) * 100;
+                if (newProgress.xp >= xpForNextLevel) { newProgress.userLevel += 1; }
+                await setDoc(progressRef, newProgress, { merge: true });
 
-                setTimeout(() => advanceProgress(), 1000);
+                setTimeout(() => advanceProgress(db, userId), 1000);
             } else {
                 resultDiv.textContent = 'Incorrecto. ¡Inténtalo de nuevo!';
                 resultDiv.className = 'mt-4 text-sm font-bold text-red-400';
             }
         }
 
-        function advanceProgress() {
-            currentProgress.practiceIndex++;
+        async function advanceProgress(db, userId) {
+            const progressRef = doc(db, `artifacts/${appId}/users/${userId}/progress/main`);
+            let newProgress = { ...currentProgress };
+            newProgress.practiceIndex++;
             
-            const totalPractice = courseData[currentProgress.level].lessons[currentProgress.lesson].practice.length;
+            const totalPractice = courseData[newProgress.level].lessons[newProgress.lesson].practice.length;
 
-            if (currentProgress.practiceIndex >= totalPractice) {
-                currentProgress.lesson++;
-                currentProgress.practiceIndex = -1; 
-                currentProgress.xp += 50; 
+            if (newProgress.practiceIndex >= totalPractice) {
+                newProgress.lesson++;
+                newProgress.practiceIndex = -1; 
+                newProgress.xp += 50; 
 
-                const totalLessons = courseData[currentProgress.level].lessons.length;
-                if (currentProgress.lesson >= totalLessons) {
-                    if (!currentProgress.completedLevels.includes(currentProgress.level)) {
-                        currentProgress.completedLevels.push(currentProgress.level);
+                const totalLessons = courseData[newProgress.level].lessons.length;
+                if (newProgress.lesson >= totalLessons) {
+                    if (!newProgress.completedLevels.includes(newProgress.level)) {
+                        newProgress.completedLevels.push(newProgress.level);
                     }
-                    const levelIndex = levelOrder.indexOf(currentProgress.level);
+                    const levelIndex = levelOrder.indexOf(newProgress.level);
                     if (levelIndex < levelOrder.length - 1) {
-                        currentProgress.level = levelOrder[levelIndex + 1];
-                        currentProgress.lesson = 0;
+                        newProgress.level = levelOrder[levelIndex + 1];
+                        newProgress.lesson = 0;
                     } else {
-                         currentProgress.practiceIndex = 0; 
+                         newProgress.practiceIndex = 0; 
                     }
                 }
-                const xpForNextLevel = currentProgress.userLevel * 100;
-                if (currentProgress.xp >= xpForNextLevel) { currentProgress.userLevel += 1; }
+                const xpForNextLevel = newProgress.userLevel * 100;
+                if (newProgress.xp >= xpForNextLevel) { newProgress.userLevel += 1; }
             }
-            saveProgress();
-            renderContent(currentProgress);
+            await setDoc(progressRef, newProgress);
         }
-
-        // Llamada inicial para arrancar la app
-        initializeAppAndRun();
     </script>
 </body>
 </html>
